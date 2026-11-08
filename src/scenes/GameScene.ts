@@ -99,9 +99,9 @@ export class GameScene implements Scene {
       const level = this.song.levelAtBeat(b);
       this.scoring.levelUp(level);
       this.audio.synth.levelUp();
-      this.showBanner(`GARE ${level}`, C.gold, 1.6);
+      this.showBanner(`STATION ${level}`, C.gold, 1.6);
       this.fx.doFlash(C.gold, 1);
-      this.fx.popup('+1 WAGON', VIEW_W / 2, 140, C.gold);
+      this.fx.popup('+1 CAR', VIEW_W / 2, 140, C.gold);
     }
     if (this.song.intensityAtBeat(b) === 3) this.fx.shake(1);
   }
@@ -152,7 +152,7 @@ export class GameScene implements Scene {
     if (over) {
       this.crashTimer = 1.6;
       this.sequencer.stop();
-      this.showBanner('DERAILLE!', C.red, 1.6);
+      this.showBanner('DERAILED!', C.red, 1.6);
       for (let i = 0; i < 4; i++) this.fx.burst(this.train.x, TRAIN_Y + i * 18, C.red, 16, 140);
     } else {
       this.fx.popup('CRASH!', laneX(e.lane), TRAIN_Y - 40, C.red, 1);
@@ -160,7 +160,7 @@ export class GameScene implements Scene {
   }
 
   private wagonEarned(): void {
-    this.fx.popup('+1 WAGON', this.train.x, TRAIN_Y - 50, C.gold);
+    this.fx.popup('+1 CAR', this.train.x, TRAIN_Y - 50, C.gold);
     this.audio.synth.levelUp();
   }
 
@@ -209,7 +209,7 @@ export class GameScene implements Scene {
       this.fx.burst(fromX, TRAIN_Y + 8, C.fg, 6, 60, 1.2, sparkDir);
       this.fx.popup('GOOD', px, TRAIN_Y - 22, C.fg);
     } else {
-      this.fx.popup(j.error < 0 ? 'TROP TOT' : 'TROP TARD', px, TRAIN_Y - 22, C.mid);
+      this.fx.popup(j.error < 0 ? 'EARLY' : 'LATE', px, TRAIN_Y - 22, C.mid);
     }
     if (earned) this.wagonEarned();
   }
@@ -267,8 +267,8 @@ export class GameScene implements Scene {
       r.rect(0, 0, VIEW_W, VIEW_H, C.bg);
       r.ctx.globalAlpha = 1;
       r.text('PAUSE', VIEW_W / 2, 120, C.fg, 4, 'center');
-      r.text('ESPACE / TAP : REPRENDRE', VIEW_W / 2, 150, C.mid, 1, 'center');
-      r.text('ECHAP : MENU', VIEW_W / 2, 160, C.mid, 1, 'center');
+      r.text('SPACE / TAP: RESUME', VIEW_W / 2, 150, C.mid, 1, 'center');
+      r.text('ESC: MENU', VIEW_W / 2, 160, C.mid, 1, 'center');
     }
   }
 
@@ -278,7 +278,7 @@ export class GameScene implements Scene {
     r.rect(0, 11, VIEW_W, 1, C.dim);
     r.text(String(s.score).padStart(7, '0'), 3, 3, C.fg);
     const level = this.song.levelAtBeat(Math.max(0, this.now));
-    r.text(`GARE ${level}`, VIEW_W - 3, 3, C.gold, 1, 'right');
+    r.text(`STATION ${level}`, VIEW_W - 3, 3, C.gold, 1, 'right');
     r.text(`${Math.round(this.song.tempo.bpmAt(Math.max(0, this.now)))} BPM`, VIEW_W / 2, 3, C.mid, 1, 'center');
 
     if (s.combo >= 2) {

@@ -53,13 +53,13 @@ export class TitleScene implements Scene {
     const bounce = phase < 0.12 ? -1 : 0;
     r.text('DENSHA', cx, 22 + bounce, C.fg, 5, 'center', C.darkRed);
     r.text('POUET POUET', cx, 52, C.red, 3, 'center', C.dim);
-    r.text('<- ->  CHANGE DE VOIE', cx, 78, C.fg, 1, 'center');
-    r.text('SUR LE TEMPO POUR LE COMBO', cx, 88, C.cyan, 1, 'center');
-    r.text('EVITE LES OBSTACLES', cx, 98, C.red, 1, 'center');
-    r.text('ATTRAPE LES NOTES', cx, 108, C.gold, 1, 'center');
-    if (Math.floor(this.t * 2) % 2 === 0) r.text('ESPACE / TAP POUR PARTIR', cx, 124, C.fg, 1, 'center');
+    r.text('<- ->  SWITCH TRACKS', cx, 78, C.fg, 1, 'center');
+    r.text('MOVE ON THE BEAT FOR COMBOS', cx, 88, C.cyan, 1, 'center');
+    r.text('DODGE THE OBSTACLES', cx, 98, C.red, 1, 'center');
+    r.text('GRAB THE NOTES', cx, 108, C.gold, 1, 'center');
+    if (Math.floor(this.t * 2) % 2 === 0) r.text('SPACE / TAP TO DEPART', cx, 124, C.fg, 1, 'center');
     const lat = this.game.latencyMs;
-    r.text(`LATENCE ${lat >= 0 ? '+' : ''}${lat}MS  [-/+]`, cx, 138, C.mid, 1, 'center');
-    if (this.game.best > 0) r.text(`RECORD ${this.game.best}`, cx, 6, C.gold, 1, 'center');
+    r.text(`LATENCY ${lat >= 0 ? '+' : ''}${lat}MS  [-/+]`, cx, 138, C.mid, 1, 'center');
+    if (this.game.best > 0) r.text(`BEST ${this.game.best}`, cx, 6, C.gold, 1, 'center');
   }
 }

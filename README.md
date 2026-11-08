@@ -1,6 +1,6 @@
 # Densha Pouet Pouet 🚃🎺
 
-Jeu de train arcade **rythmique** à défilement vertical, en pixel art.
+Jeu (en anglais) de train arcade **rythmique** à défilement vertical, en pixel art.
 Ton train file sur **4 voies** : change de voie **sur le tempo** de la musique
 pour enchaîner les combos, évite les obstacles et attrape les notes.
 
@@ -17,8 +17,8 @@ pour enchaîner les combos, évite les obstacles et attrape les notes.
   **PERFECT** (±60 ms), **GOOD** (±120 ms) ou hors tempo (combo perdu, et le klaxon sonne faux 🎺).
 - Les **notes** dorées rapportent des points × le multiplicateur de combo.
 - Toucher un **obstacle** (caisse, barrière, vache) coûte un wagon. Plus de wagons = terminus.
-- Tous les 32 de combo, et à chaque nouvelle **gare** (toutes les 16 mesures), tu gagnes un wagon.
-  Le tempo accélère à chaque gare (112 → 176 BPM).
+- Tous les 32 de combo, et à chaque nouvelle **station** (toutes les 16 mesures), tu gagnes un wagon.
+  Le tempo accélère à chaque station (112 → 176 BPM).
 
 ## Technique
 

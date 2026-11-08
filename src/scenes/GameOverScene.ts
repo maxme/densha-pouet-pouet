@@ -30,23 +30,23 @@ export class GameOverScene implements Scene {
     r.clear(C.bg);
     const cx = VIEW_W / 2;
     r.text('TERMINUS!', cx, 24, C.red, 3, 'center');
-    r.text(`GARE ${this.level}`, cx, 46, C.gold, 1, 'center');
+    r.text(`STATION ${this.level}`, cx, 46, C.gold, 1, 'center');
 
-    r.text('RANG', cx, 64, C.mid, 1, 'center');
+    r.text('RANK', cx, 64, C.mid, 1, 'center');
     const wobble = Math.round(Math.sin(this.t * 6) * 1);
     r.text(this.s.rank, cx, 74 + wobble, C.cyan, 6, 'center', C.dim);
 
     r.text('SCORE', cx, 114, C.mid, 1, 'center');
     r.text(String(this.s.score), cx, 122, C.fg, 3, 'center');
-    if (this.newBest && Math.floor(this.t * 4) % 2 === 0) r.text('NOUVEAU RECORD!', cx, 142, C.gold, 1, 'center');
-    else r.text(`RECORD ${this.game.best}`, cx, 142, C.mid, 1, 'center');
+    if (this.newBest && Math.floor(this.t * 4) % 2 === 0) r.text('NEW BEST!', cx, 142, C.gold, 1, 'center');
+    else r.text(`BEST ${this.game.best}`, cx, 142, C.mid, 1, 'center');
 
     const rows: [string, string, string][] = [
       ['PERFECT', String(this.s.perfects), C.cyan],
       ['GOOD', String(this.s.goods), C.fg],
-      ['HORS TEMPO', String(this.s.offs), C.mid],
+      ['OFF BEAT', String(this.s.offs), C.mid],
       ['NOTES', String(this.s.notes), C.gold],
-      ['COMBO MAX', String(this.s.maxCombo), C.fg],
+      ['MAX COMBO', String(this.s.maxCombo), C.fg],
       ['COLLISIONS', String(this.s.hits), C.red],
     ];
     rows.forEach(([label, value, color], i) => {
@@ -56,8 +56,8 @@ export class GameOverScene implements Scene {
     });
 
     if (this.t > 0.8 && Math.floor(this.t * 2) % 2 === 0) {
-      r.text('ESPACE / TAP : REJOUER', cx, 250, C.fg, 1, 'center');
+      r.text('SPACE / TAP: RETRY', cx, 250, C.fg, 1, 'center');
     }
-    r.text('ECHAP : MENU', cx, 262, C.mid, 1, 'center');
+    r.text('ESC: MENU', cx, 262, C.mid, 1, 'center');
   }
 }
