@@ -1,0 +1,90 @@
+// Look-ahead scheduler: plays the procedural song on a 16th-note grid.
+
+import { BEATS_PER_BAR } from '../config';
+import { Conductor } from './Conductor';
+import { noteFreq, Song } from './Song';
+import { Synth } from './Synth';
+
+const LOOKAHEAD = 0.15; // seconds
+const TICK_MS = 25;
+
+export class Sequencer {
+  private step = 0; // global 16th-note index
+  private timer: number | undefined;
+
+  constructor(
+    private readonly song: Song,
+    private readonly synth: Synth,
+    private readonly conductor: Conductor,
+  ) {}
+
+  start(): void {
+    this.step = 0;
+    this.stop();
+    this.timer = window.setInterval(() => this.schedule(), TICK_MS);
+    this.schedule();
+  }
+
+  stop(): void {
+    if (this.timer !== undefined) window.clearInterval(this.timer);
+    this.timer = undefined;
+  }
+
+  private schedule(): void {
+    const ctx = this.synth.ctx;
+    if (ctx.state !== 'running') return;
+    for (;;) {
+      const beat = this.step / 4;
+      const at = this.conductor.ctxTimeFor(this.song.tempo.timeAt(beat));
+      if (at > ctx.currentTime + LOOKAHEAD) break;
+      if (at >= ctx.currentTime - 0.02) this.playStep(this.step, at);
+      this.step++;
+    }
+  }
+
+  private playStep(globalStep: number, t: number): void {
+    const s = this.synth;
+    const song = this.song;
+    const stepsPerBar = BEATS_PER_BAR * 4;
+    const bar = Math.floor(globalStep / stepsPerBar);
+    const step = globalStep % stepsPerBar;
+    const intensity = song.intensityAtBar(bar);
+    const level = song.levelAtBar(bar);
+    const chord = song.chordAtBar(bar);
+    const beatDur = 60 / song.tempo.bpmAt(globalStep / 4);
+    const sixteenth = beatDur / 4;
+    const lastBarOfLevel = (bar + 1) % 16 === 0;
+
+    // Drums
+    if (step % 4 === 0 && (intensity >= 1 || step === 0 || step === 8)) s.kick(t);
+    if (intensity >= 1 && (step === 4 || step === 12)) s.snare(t);
+    if (intensity === 3 && lastBarOfLevel && step >= 12) s.snare(t, 0.4 + (step - 12) * 0.2);
+    if (step % 2 === 0) {
+      s.hat(t, step % 4 === 2 ? 1 : 0.5, intensity >= 2 && step % 4 === 2);
+    } else if (intensity >= 2) {
+      s.hat(t, 0.35);
+    }
+
+    // Bass: pumping eighths following the chord root
+    if (step % 2 === 0) {
+      const octave = step % 4 === 2 && intensity >= 1 ? 12 : 0;
+      s.bass(t, noteFreq(chord.root + octave - 12), sixteenth * 1.6);
+    }
+
+    // Pad on each bar
+    if (step === 0 && intensity >= 1) {
+      const freqs = chord.tones.map((tone) => noteFreq(chord.root + tone + 12));
+      s.pad(t, freqs, beatDur * 3.5);
+    }
+
+    // Lead melody
+    if (intensity >= 2) {
+      const phrase = song.melody(level);
+      const note = phrase[(bar % 2) * 16 + step];
+      if (note !== null) {
+        const up = intensity === 3 ? 24 : 12;
+        s.lead(t, noteFreq(note + up), sixteenth * 1.8);
+      }
+    }
+  }
+}
