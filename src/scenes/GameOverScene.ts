@@ -47,10 +47,12 @@ export class GameOverScene implements Scene {
       ['OFF BEAT', String(this.s.offs), C.mid],
       ['NOTES', String(this.s.notes), C.gold],
       ['MAX COMBO', String(this.s.maxCombo), C.fg],
-      ['COLLISIONS', String(this.s.hits), C.red],
+      ['CLOSE CALLS', String(this.s.closeCalls), C.cyan],
+      ['SMASHES', String(this.s.smashes), C.gold],
+      ['CRASHES', String(this.s.hits), C.red],
     ];
     rows.forEach(([label, value, color], i) => {
-      const y = 164 + i * 11;
+      const y = 158 + i * 10;
       r.text(label, 30, y, color);
       r.text(value, VIEW_W - 30, y, color, 1, 'right');
     });

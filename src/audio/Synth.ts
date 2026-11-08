@@ -149,4 +149,53 @@ export class Synth {
       this.osc('square', f, tt, 0.12, this.env(tt, 0.06, 0.12, this.sfx));
     });
   }
+
+  /** Low two-tone warning horn of an oncoming express. */
+  warnHorn(): void {
+    const t = this.ctx.currentTime;
+    [0, 0.22].forEach((d, i) => {
+      const tt = t + d;
+      const lp = this.ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 900;
+      lp.connect(this.env(tt, 0.14, 0.2, this.sfx, 0.02));
+      const f = i === 0 ? 233 : 196;
+      this.osc('sawtooth', f, tt, 0.22, lp);
+      this.osc('sawtooth', f * 1.26, tt, 0.22, lp);
+    });
+  }
+
+  /** Mechanical clack of a track switch. */
+  clack(): void {
+    const t = this.ctx.currentTime;
+    [0, 0.07].forEach((d) => {
+      const hp = this.ctx.createBiquadFilter();
+      hp.type = 'bandpass';
+      hp.frequency.value = 2500;
+      hp.connect(this.env(t + d, 0.35, 0.04, this.sfx));
+      this.noiseSrc(t + d, 0.05, hp);
+    });
+  }
+
+  /** Super Express smashing through an obstacle. */
+  smash(): void {
+    const t = this.ctx.currentTime;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1500;
+    bp.connect(this.env(t, 0.4, 0.18, this.sfx));
+    this.noiseSrc(t, 0.2, bp);
+    const o = this.osc('square', 300, t, 0.15, this.env(t, 0.1, 0.15, this.sfx));
+    o.frequency.exponentialRampToValueAtTime(900, t + 0.15);
+  }
+
+  /** Rising fanfare when Super Express starts. */
+  feverStart(): void {
+    const t = this.ctx.currentTime;
+    [440, 554, 659, 880, 1109, 1319].forEach((f, i) => {
+      const tt = t + i * 0.05;
+      this.osc('square', f, tt, 0.2, this.env(tt, 0.06, 0.2, this.sfx));
+      this.osc('square', f * 0.5, tt, 0.2, this.env(tt, 0.05, 0.2, this.sfx));
+    });
+  }
 }

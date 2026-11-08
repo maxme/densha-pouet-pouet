@@ -42,7 +42,7 @@ export class TitleScene implements Scene {
     const beat = (this.t * DEMO_BPM) / 60;
     const phase = beat % 1;
     r.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    drawTrack(r, beat, 1, phase);
+    drawTrack(r, beat, { intensity: 1, beatPhase: phase, time: this.t });
     this.train.draw(r, 3, phase, false);
 
     r.ctx.globalAlpha = 0.75;

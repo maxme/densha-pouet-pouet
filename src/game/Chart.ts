@@ -1,111 +1,133 @@
-// Procedural beatmap: obstacles to dodge and notes to collect, one row per beat.
-// A "safe lane" walks across the track (at most one lane per beat) and is never
-// blocked, so every chart is always playable.
+// Beatmap generator: chains hand-written patterns (see Patterns.ts) chosen
+// by the song's intensity, with short transitions that walk the player to
+// the next pattern's starting lane.
 
 import { INTRO_BEATS, LANES, START_LANE } from '../config';
 import { Song } from '../audio/Song';
 import { makeRng, Rng } from '../rng';
+import { Pattern, PATTERNS } from './Patterns';
 
-export type ObstacleKind = 'crate' | 'barrier' | 'cow';
-export type EntityKind = ObstacleKind | 'note';
+export type ObstacleKind = 'crate' | 'barrier' | 'cow' | 'express';
+export type EntityKind = ObstacleKind | 'note' | 'switchL' | 'switchR';
 
 export interface Entity {
   beat: number;
   lane: number;
   kind: EntityKind;
+  /** Length in beats (express trains only). */
+  len: number;
   resolved: boolean;
-  /** Set when a note is collected or an obstacle hit (for effects). */
-  outcome?: 'collected' | 'missed' | 'hit' | 'dodged';
+  warned?: boolean;
+  outcome?: 'collected' | 'missed' | 'hit' | 'dodged' | 'smashed' | 'switched';
 }
 
-const OBSTACLES: ObstacleKind[] = ['crate', 'barrier', 'cow'];
+export interface Row {
+  beat: number;
+  blocked: boolean[];
+  push: number[]; // -1 / 0 / +1 per lane (track switches)
+}
+
+const STATIC: ObstacleKind[] = ['crate', 'barrier', 'cow'];
+
+export function isObstacle(kind: EntityKind): boolean {
+  return kind !== 'note' && kind !== 'switchL' && kind !== 'switchR';
+}
 
 export class Chart {
   readonly entities: Entity[] = [];
-  /** safeLanes[b] = lane guaranteed free at beat b. */
-  readonly safeLanes: number[] = [];
-  private nextBeat = 0;
+  /** Every generated row, for validation in tests (only when recordRows). */
+  readonly rows: Row[] = [];
+  private cursor = INTRO_BEATS;
   private safe = START_LANE;
+  private lastPattern = '';
   private rng: Rng;
 
-  constructor(private readonly song: Song, seed: number) {
+  constructor(private readonly song: Song, seed: number, private readonly recordRows = false) {
     this.rng = makeRng(seed);
+    for (let b = 4; b < INTRO_BEATS; b++) this.push(b, START_LANE, 'note');
   }
 
   generateUpTo(beat: number): void {
-    while (this.nextBeat <= beat) {
-      this.generateBeat(this.nextBeat);
-      this.nextBeat++;
-    }
+    while (this.cursor <= beat) this.generateChunk();
   }
 
-  /** Drop entities that are far behind the train. */
   prune(currentBeat: number): void {
     let i = 0;
-    while (i < this.entities.length && this.entities[i].beat < currentBeat - 3) i++;
+    while (i < this.entities.length && this.entities[i].beat + this.entities[i].len < currentBeat - 3) i++;
     if (i > 0) this.entities.splice(0, i);
   }
 
-  private generateBeat(b: number): void {
-    const rng = this.rng;
-    const intensity = this.song.intensityAtBeat(b);
-    const level = this.song.levelAtBeat(b);
-    const prevSafe = this.safe;
+  private generateChunk(): void {
+    const intensity = this.song.intensityAtBeat(this.cursor);
+    const choices = PATTERNS.filter(
+      (p) => p.minI <= intensity && intensity <= p.maxI && p.name !== this.lastPattern,
+    );
+    const pattern = choices[Math.floor(this.rng() * choices.length)];
+    this.lastPattern = pattern.name;
+    const mirror = this.rng() < 0.5;
+    const rows = pattern.rows.map((r) => (mirror ? mirrorRow(r) : r));
 
-    if (b >= INTRO_BEATS) {
-      const moveChance = [0.3, 0.4, 0.5, 0.6][intensity] + Math.min(0.15, (level - 1) * 0.03);
-      if (rng() < moveChance) {
-        const dir = this.safe === 0 ? 1 : this.safe === LANES - 1 ? -1 : rng() < 0.5 ? -1 : 1;
-        this.safe += dir;
+    // Walk to the pattern's starting lane, one lane per beat.
+    const start = pathLane(rows[0]) ?? this.safe;
+    while (this.safe !== start) {
+      const old = this.safe;
+      this.safe += Math.sign(start - this.safe);
+      const row: string[] = Array.from({ length: LANES }, (_, l) => (l === this.safe ? 'o' : '.'));
+      if (intensity >= 1) row[old] = 'x';
+      this.emitRow(row.join(''), this.cursor, 1, []);
+      this.cursor += 1;
+    }
+    this.emitPattern(pattern, rows);
+  }
+
+  private emitPattern(p: Pattern, rows: string[]): void {
+    rows.forEach((row, i) => {
+      const beat = this.cursor + i * p.step;
+      this.emitRow(row, beat, p.step, rows.slice(i + 1));
+      const lane = pathLane(row);
+      if (lane !== null) this.safe = lane;
+      for (let l = 0; l < LANES; l++) {
+        if (row[l] === '<') this.safe = l === this.safe ? l - 1 : this.safe;
+        if (row[l] === '>') this.safe = l === this.safe ? l + 1 : this.safe;
+      }
+    });
+    this.cursor += rows.length * p.step;
+  }
+
+  private emitRow(row: string, beat: number, step: number, following: string[]): void {
+    const blocked: boolean[] = [];
+    const push: number[] = [];
+    for (let l = 0; l < LANES; l++) {
+      const c = row[l];
+      blocked.push(c === 'x' || c === 'E' || c === '|');
+      push.push(c === '<' ? -1 : c === '>' ? 1 : 0);
+      if (c === 'o') this.push(beat, l, 'note');
+      else if (c === 'x') this.push(beat, l, STATIC[Math.floor(this.rng() * STATIC.length)]);
+      else if (c === '<') this.push(beat, l, 'switchL');
+      else if (c === '>') this.push(beat, l, 'switchR');
+      else if (c === 'E') {
+        let n = 0;
+        while (n < following.length && following[n][l] === '|') n++;
+        this.push(beat, l, 'express', n * step);
       }
     }
-    this.safeLanes[b] = this.safe;
-
-    if (b < INTRO_BEATS) {
-      // Teach the player: a few notes on the starting lane during the countdown.
-      if (b >= 4) this.push(b, this.safe, 'note');
-      return;
-    }
-
-    // Obstacles
-    let count: number;
-    switch (intensity) {
-      case 0:
-        count = b % 2 === 0 && rng() < 0.5 ? 1 : 0;
-        break;
-      case 1:
-        count = b % 2 === 0 || rng() < 0.3 ? 1 : 0;
-        break;
-      case 2:
-        count = 1 + (rng() < 0.35 + level * 0.05 ? 1 : 0);
-        break;
-      default:
-        count = 2 + (rng() < 0.2 + level * 0.06 ? 1 : 0);
-    }
-    // When the safe lane just moved, block the old lane: the player must move on the beat.
-    const candidates: number[] = [];
-    for (let l = 0; l < LANES; l++) if (l !== this.safe) candidates.push(l);
-    if (prevSafe !== this.safe && intensity >= 1 && count > 0) {
-      this.push(b, prevSafe, this.pickObstacle());
-      candidates.splice(candidates.indexOf(prevSafe), 1);
-      count--;
-    }
-    for (let i = 0; i < count && candidates.length > 0; i++) {
-      const idx = Math.floor(rng() * candidates.length);
-      const lane = candidates.splice(idx, 1)[0];
-      this.push(b, lane, this.pickObstacle());
-    }
-
-    // Notes reward following the safe path, especially when it moves.
-    const noteChance = prevSafe !== this.safe ? 0.85 : 0.4;
-    if (rng() < noteChance) this.push(b, this.safe, 'note');
+    if (this.recordRows) this.rows.push({ beat, blocked, push });
   }
 
-  private pickObstacle(): ObstacleKind {
-    return OBSTACLES[Math.floor(this.rng() * OBSTACLES.length)];
+  private push(beat: number, lane: number, kind: EntityKind, len = 0): void {
+    this.entities.push({ beat, lane, kind, len, resolved: false });
   }
+}
 
-  private push(beat: number, lane: number, kind: EntityKind): void {
-    this.entities.push({ beat, lane, kind, resolved: false });
-  }
+function pathLane(row: string): number | null {
+  for (let l = 0; l < row.length; l++) if (row[l] === 'o' || row[l] === '-') return l;
+  return null;
+}
+
+function mirrorRow(row: string): string {
+  return row
+    .split('')
+    .reverse()
+    .map((c) => (c === '<' ? '>' : c === '>' ? '<' : c))
+    .join('');
 }

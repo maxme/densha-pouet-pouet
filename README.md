@@ -15,17 +15,29 @@ pour enchaîner les combos, évite les obstacles et attrape les notes.
 
 - Chaque changement de voie est jugé par rapport au temps le plus proche :
   **PERFECT** (±60 ms), **GOOD** (±120 ms) ou hors tempo (combo perdu, et le klaxon sonne faux 🎺).
+- Le **klaxon joue la mélodie** : chaque déplacement dans le temps joue la note suivante du thème.
+- **La musique se construit avec ton combo** : batterie seule, puis basse (2), nappe (6),
+  mélodie (12) et groupe complet (24). Un crash te ramène à la batterie.
+- Les obstacles arrivent en **patterns** calés sur la musique (escaliers, zigzags, murs,
+  trilles en croches…) :
+  - caisses, vaches, **barrières** de passage à niveau qui se ferment à l'approche ;
+  - **trains express** en sens inverse, annoncés par un klaxon et un « ! » 3 temps avant ;
+  - **aiguillages** (< >) qui déplacent ton train de force.
 - Les **notes** dorées rapportent des points × le multiplicateur de combo.
-- Toucher un **obstacle** (caisse, barrière, vache) coûte un wagon. Plus de wagons = terminus.
-- Tous les 32 de combo, et à chaque nouvelle **station** (toutes les 16 mesures), tu gagnes un wagon.
-  Le tempo accélère à chaque station (112 → 176 BPM).
+- **CLOSE CALL!** : quitter la voie d'un obstacle juste après son temps rapporte un bonus.
+- La jauge de **vapeur** se remplit en jouant bien. Pleine, elle déclenche le
+  **SUPER EXPRESS** : 8 mesures d'invincibilité, score ×2, et tu défonces les obstacles.
+- Toucher un obstacle coûte un wagon. Plus de wagons = terminus.
+- Tous les 32 de combo, et à chaque nouvelle **station** (toutes les 8 mesures), tu gagnes un wagon.
+  Le tempo accélère à chaque station (120 → 180 BPM), et le défilement accélère avec le combo.
 
 ## Technique
 
 - TypeScript + Vite + Canvas 2D (résolution 180×320 upscalée en pixels nets)
 - Musique **100 % générée** avec la Web Audio API (`src/audio/`) : séquenceur look-ahead,
   batterie, basse, pad et mélodie procédurale, synchronisés sur l'horloge audio
-- Beatmap procédurale (`src/game/Chart.ts`) qui garantit toujours une voie libre
+- Beatmap faite de patterns écrits à la main (`src/game/Patterns.ts`), enchaînés selon
+  l'intensité de la musique ; les tests vérifient qu'il existe toujours un chemin jouable
 
 ```bash
 npm install

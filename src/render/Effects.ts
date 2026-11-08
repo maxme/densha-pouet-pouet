@@ -20,6 +20,7 @@ interface Popup {
   life: number;
   color: string;
   scale: number;
+  tag?: string;
 }
 
 export class Effects {
@@ -27,6 +28,8 @@ export class Effects {
   private popups: Popup[] = [];
   private shakeAmount = 0;
   flash = 0;
+  /** Zoom punch (0..1) for impactful moments. */
+  punch = 0;
   flashColor = '#ffffff';
 
   shake(amount: number): void {
@@ -50,8 +53,14 @@ export class Effects {
     }
   }
 
-  popup(text: string, x: number, y: number, color: string, scale = 1): void {
-    this.popups.push({ text, x, y, life: 0.6, color, scale });
+  /** Pop-up text; a tagged pop-up replaces the previous one with the same tag. */
+  popup(text: string, x: number, y: number, color: string, scale = 1, tag?: string): void {
+    if (tag) this.popups = this.popups.filter((p) => p.tag !== tag);
+    this.popups.push({ text, x, y, life: 0.6, color, scale, tag });
+  }
+
+  doPunch(amount = 1): void {
+    this.punch = Math.max(this.punch, amount);
   }
 
   /** Offset to apply to the world for screen shake. */
@@ -66,6 +75,7 @@ export class Effects {
   update(dt: number): void {
     this.shakeAmount *= Math.pow(0.0005, dt);
     this.flash = Math.max(0, this.flash - dt * 4);
+    this.punch = Math.max(0, this.punch - dt * 9);
     for (const p of this.particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;

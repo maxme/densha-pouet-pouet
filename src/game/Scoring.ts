@@ -14,9 +14,35 @@ export class Scoring {
   notes = 0;
   notesMissed = 0;
   hits = 0;
+  closeCalls = 0;
+  smashes = 0;
+  /** Steam gauge 0..1: fills up with good play, triggers Super Express. */
+  steam = 0;
+  fever = false;
 
   get multiplier(): number {
-    return Math.min(8, 1 + Math.floor(this.combo / 8));
+    return Math.min(8, 1 + Math.floor(this.combo / 8)) * (this.fever ? 2 : 1);
+  }
+
+  /** Music layers unlocked by the combo: drums, +bass, +pad, +lead, +arp. */
+  get layer(): number {
+    const c = this.combo;
+    return c >= 24 ? 4 : c >= 12 ? 3 : c >= 6 ? 2 : c >= 2 ? 1 : 0;
+  }
+
+  private addSteam(n: number): void {
+    if (!this.fever) this.steam = Math.min(1, this.steam + n);
+  }
+
+  closeCall(): void {
+    this.closeCalls++;
+    this.score += 150 * this.multiplier;
+    this.addSteam(0.05);
+  }
+
+  smash(): void {
+    this.smashes++;
+    this.score += 300 * this.multiplier;
   }
 
   /** Returns true if a wagon was earned. */
@@ -28,6 +54,7 @@ export class Scoring {
     }
     if (grade === 'perfect') this.perfects++;
     else this.goods++;
+    this.addSteam(grade === 'perfect' ? 0.025 : 0.01);
     this.score += (grade === 'perfect' ? 100 : 50) * this.multiplier;
     return this.bumpCombo();
   }
@@ -35,6 +62,7 @@ export class Scoring {
   /** Returns true if a wagon was earned. */
   note(): boolean {
     this.notes++;
+    this.addSteam(0.02);
     this.score += 200 * this.multiplier;
     return this.bumpCombo();
   }
@@ -47,6 +75,7 @@ export class Scoring {
   hit(): boolean {
     this.hits++;
     this.combo = 0;
+    this.steam = 0;
     this.wagons = Math.max(0, this.wagons - 1);
     return this.wagons === 0;
   }

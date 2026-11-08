@@ -15,7 +15,8 @@ import { TempoMap } from './TempoMap';
 /** 0 = calm, 1 = groove, 2 = build, 3 = full throttle. */
 export type Intensity = 0 | 1 | 2 | 3;
 
-const SECTION_SHAPE: Intensity[] = [0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3];
+// One station = 8 bars: a breather, a groove, a build-up, then full throttle.
+const SECTION_SHAPE: Intensity[] = [0, 1, 1, 2, 2, 2, 3, 3];
 
 interface Chord {
   root: number; // semitones above A
@@ -95,9 +96,24 @@ export class Song {
     return m;
   }
 
-  /** Two notes (semitones from A2) for the horn, matching the current chord. */
-  hornNotes(bar: number): [number, number] {
+  /** Horn melody for a level: 8 indices into the current chord (root, 3rd, 5th, octave). */
+  hornPhrase(level: number): number[] {
+    const rng = makeRng(this.seed * 7 + level * 131);
+    const phrase = [0];
+    for (let i = 1; i < 8; i++) {
+      const prev = phrase[i - 1];
+      const next = Math.max(0, Math.min(3, prev + (rng() < 0.5 ? -1 : 1) * (rng() < 0.8 ? 1 : 2)));
+      phrase.push(next);
+    }
+    phrase[7] = rng() < 0.5 ? 3 : 0; // resolve the phrase
+    return phrase;
+  }
+
+  /** Horn note (semitones from A2) for step `index` of the phrase, on `bar`. */
+  hornNote(bar: number, index: number): number {
     const c = this.chordAtBar(bar);
-    return [c.root + 24 + c.tones[0], c.root + 24 + c.tones[1]];
+    const tones = [...c.tones, 12];
+    const phrase = this.hornPhrase(this.levelAtBar(bar));
+    return c.root + 24 + tones[phrase[((index % 8) + 8) % 8]];
   }
 }
